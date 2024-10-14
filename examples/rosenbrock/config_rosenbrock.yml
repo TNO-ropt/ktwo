@@ -30,7 +30,7 @@ optimization:
   algorithm: slsqp
   perturbation_num: 5
   speculative: true
-  max_function_evaluations: 30
+  max_function_evaluations: 2
 
 environment:
   log_level: debug

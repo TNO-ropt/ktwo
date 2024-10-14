@@ -1,9 +1,15 @@
 inputs:
-  - config
+  - everest_config
 variables:
-  optimal: null
+  ropt_config: null
 steps:
+  - run: setvar
+    with: "everest_config['controls'][0]['max'] = 1.5"
+  - run: parse_everest_config
+    with:
+      input: $everest_config
+      output: ropt_config
   - run: optimizer
     with:
-      config: $config
+      config: $ropt_config
       tags: report
