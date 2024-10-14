@@ -1,0 +1,67 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ktwo"
+description = "A module for supporting the development of Everest features"
+readme = "README.md"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Natural Language :: English",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering",
+]
+requires-python = ">=3.11"
+dynamic = ["version"]
+dependencies = []
+
+[project.urls]
+"Homepage" = "https://github.com/TNO-ropt/ktwo"
+"Repository" = "https://github.com/TNO-ropt/ktwo"
+"Bug Tracker" = "https://github.com/TNO-ropt/ktwo/issues"
+
+[project.scripts]
+k2 = "ktwo.main:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+ropt = ["py.typed"]
+
+[tool.setuptools.dynamic]
+version = { attr = "ktwo.version.__version__" }
+
+[tool.setuptools_scm]
+write_to = "src/ktwo/version.py"
+
+[tool.ruff.format]
+exclude = ["src/ktwo/version.py", "build"]
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "AIR",    # airflow-variable-name-task-id-mismatch
+    "COM812", # missing-trailing-comma
+    "E501",   # line-too-lone
+    "ISC001", # single-line-implicit-string-concatenation   
+    "DJ",     # flake8-django
+    "FA",     # flake8-future-annotations
+    "UP",     # pyupgrade 
+    "S101",   # assert
+    "T201",   # print
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "pep257"
+
+[tool.uv]
+dev-dependencies = ["mypy>=1.11.2", "ruff>=0.6.5"]
+
+[[tool.mypy.overrides]]
+module = ["everest.*"]
+ignore_missing_imports = true

@@ -1,0 +1,9 @@
+inputs:
+  - config
+variables:
+  optimal: null
+steps:
+  - run: optimizer
+    with:
+      config: $config
+      tags: report

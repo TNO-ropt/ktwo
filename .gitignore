@@ -1,0 +1,5 @@
+**/__pycache__/**
+src/**egg-info/**
+src/**/ktwo/version.py
+uv.lock
+
