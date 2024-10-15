@@ -4,7 +4,7 @@ variables:
   ropt_config: null
 steps:
   - run: setvar
-    with: "everest_config['controls'][0]['max'] = 1.5"
+    with: everest_config["controls"][0]["max"] = 1.5
   - run: parse_everest_config
     with:
       input: everest_config

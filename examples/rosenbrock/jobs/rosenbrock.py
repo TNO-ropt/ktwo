@@ -11,14 +11,17 @@ import numpy as np
 from numpy.random import default_rng
 from numpy.typing import NDArray
 
+NVAR = 4
+NREAL = 5
+
 
 def rosenbrock(variables: NDArray[np.float64], realization: int) -> float:
     """Evaluate the multi-dimensional rosenbrock function."""
     rng = default_rng(seed=123)
-    a = rng.normal(loc=1.0, scale=0.1, size=10)
-    b = rng.normal(loc=100.0, scale=10, size=10)
+    a = rng.normal(loc=1.0, scale=0.01, size=NREAL)
+    b = rng.normal(loc=100.0, scale=1, size=NREAL)
     objective = 0.0
-    for d_idx in range(4):
+    for d_idx in range(NVAR - 1):
         x, y = variables[d_idx : d_idx + 2]
         objective += (a[realization] - x) ** 2 + b[realization] * (y - x * x) ** 2
     return -objective
@@ -28,7 +31,7 @@ def _read_point(filename: Path) -> NDArray[np.float64]:
     with filename.open("r", encoding="utf-8") as f:
         variables = json.load(f)
     return np.fromiter(
-        (variables["x"][str(idx)] for idx in range(1, 6)), dtype=np.float64
+        (variables["x"][str(idx + 1)] for idx in range(NVAR)), dtype=np.float64
     )
 
 
