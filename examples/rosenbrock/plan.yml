@@ -7,9 +7,9 @@ steps:
     with: "everest_config['controls'][0]['max'] = 1.5"
   - run: parse_everest_config
     with:
-      input: $everest_config
+      input: everest_config
       output: ropt_config
   - run: optimizer
     with:
-      config: $ropt_config
+      config: ropt_config
       tags: report
