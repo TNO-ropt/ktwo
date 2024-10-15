@@ -1,7 +1,12 @@
 anchors:
   steps: &steps
-    - run: setvar
-      with: everest_config["optimization"]["max_function_evaluations"] = 2
+    - run: update_config
+      with:
+        input: everest_config
+        output: everest_config
+        updates:
+          optimization/max_function_evaluations: 2
+          controls/0/variables/3/max: 100
     - run: parse_everest_config
       with:
         input: everest_config

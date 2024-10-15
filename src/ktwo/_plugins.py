@@ -10,11 +10,13 @@ from ropt.plan import Plan  # noqa: TCH002
 from ropt.plugins.plan.base import PlanPlugin, PlanStep, ResultHandler
 
 from ._parse_config import K2ParseEverestConfigStep
+from ._update_config import K2UpdateConfigStep
 
 _RESULT_HANDLER_OBJECTS: Final[Dict[str, Type[ResultHandler]]] = {}
 
 _STEP_OBJECTS: Final[Dict[str, Type[PlanStep]]] = {
     "parse_everest_config": K2ParseEverestConfigStep,
+    "update_config": K2UpdateConfigStep,
 }
 
 
