@@ -51,7 +51,7 @@ def main(config_file: str, plan_file: str, *, verbose: bool) -> None:
 
     everest_config = EverestConfig.model_validate(everest_dict)
 
-    output_dir = Path(everest_config.optimization_output_dir)
+    output_dir = Path(everest_config.output_dir)
     if output_dir.exists():
         print(f"Output directory exists: {output_dir}")
         sys.exit(1)
