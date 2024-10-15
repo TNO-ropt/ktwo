@@ -55,9 +55,7 @@ def main(config_file: str, plan_file: str, *, verbose: bool) -> None:
     if output_dir.exists():
         print(f"Output directory exists: {output_dir}")
         sys.exit(1)
-
-    _add_results(plan_dict, output_dir)
-    plan_config = PlanConfig.model_validate(plan_dict)
+    _add_results(plan_dict["plan"], output_dir)
 
     context = OptimizerContext(
         evaluator=Simulator(everest_config),
@@ -65,15 +63,19 @@ def main(config_file: str, plan_file: str, *, verbose: bool) -> None:
     )
     plugin_manager = PluginManager()
     plugin_manager.add_plugins("plan", {"k2": K2PlanPlugin()})
-    plan = Plan(plan_config, context, plugin_manager=plugin_manager)
+    plan = Plan(
+        PlanConfig.model_validate(plan_dict["plan"]),
+        context,
+        plugin_manager=plugin_manager,
+    )
     if verbose:
         plan.add_observer(EventType.FINISHED_EVALUATION, report)
     plan.run(everest_dict)
 
 
-def _add_results(plan_dict: Dict[str, Any], output_dir: Path) -> Dict[str, Any]:
-    if "results" not in plan_dict:
-        plan_dict["results"] = []
+def _add_results(plan: Dict[str, Any], output_dir: Path) -> None:
+    if "results" not in plan:
+        plan["results"] = []
     for filename, columns, table_type in zip(
         ("results.txt", "gradients.txt", "simulations.txt", "perturbations.txt"),
         (
@@ -85,7 +87,7 @@ def _add_results(plan_dict: Dict[str, Any], output_dir: Path) -> Dict[str, Any]:
         ("functions", "gradients", "functions", "gradients"),
         strict=True,
     ):
-        plan_dict["results"].append(
+        plan["results"].append(
             {
                 "run": "table",
                 "with": {
@@ -97,7 +99,6 @@ def _add_results(plan_dict: Dict[str, Any], output_dir: Path) -> Dict[str, Any]:
                 },
             }
         )
-    return plan_dict
 
 
 if __name__ == "__main__":
