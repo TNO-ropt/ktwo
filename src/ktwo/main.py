@@ -3,6 +3,7 @@
 import sys
 import warnings
 from pathlib import Path
+from typing import Any, Dict
 
 import click
 from everest.config import EverestConfig
@@ -45,8 +46,9 @@ def main(config_file: str, plan_file: str, *, verbose: bool) -> None:
 
     The script requires an Everest configuration file and a ropt plan file.
     """
-    plan_config = yaml.YAML(typ="safe", pure=True).load(Path(plan_file))
     everest_dict = yaml_file_to_substituted_config_dict(config_file)
+    plan_dict = yaml.YAML(typ="safe", pure=True).load(Path(plan_file))
+
     everest_config = EverestConfig.model_validate(everest_dict)
 
     output_dir = Path(everest_config.optimization_output_dir)
@@ -54,8 +56,24 @@ def main(config_file: str, plan_file: str, *, verbose: bool) -> None:
         print(f"Output directory exists: {output_dir}")
         sys.exit(1)
 
-    if "results" not in plan_config:
-        plan_config["results"] = []
+    _add_results(plan_dict, output_dir)
+    plan_config = PlanConfig.model_validate(plan_dict)
+
+    context = OptimizerContext(
+        evaluator=Simulator(everest_config),
+        seed=everest_config.environment.random_seed,
+    )
+    plugin_manager = PluginManager()
+    plugin_manager.add_plugins("plan", {"k2": K2PlanPlugin()})
+    plan = Plan(plan_config, context, plugin_manager=plugin_manager)
+    if verbose:
+        plan.add_observer(EventType.FINISHED_EVALUATION, report)
+    plan.run(everest_dict)
+
+
+def _add_results(plan_dict: Dict[str, Any], output_dir: Path) -> Dict[str, Any]:
+    if "results" not in plan_dict:
+        plan_dict["results"] = []
     for filename, columns, table_type in zip(
         ("results.txt", "gradients.txt", "simulations.txt", "perturbations.txt"),
         (
@@ -67,7 +85,7 @@ def main(config_file: str, plan_file: str, *, verbose: bool) -> None:
         ("functions", "gradients", "functions", "gradients"),
         strict=True,
     ):
-        plan_config["results"].append(
+        plan_dict["results"].append(
             {
                 "run": "table",
                 "with": {
@@ -79,19 +97,7 @@ def main(config_file: str, plan_file: str, *, verbose: bool) -> None:
                 },
             }
         )
-
-    context = OptimizerContext(
-        evaluator=Simulator(everest_config),
-        seed=everest_config.environment.random_seed,
-    )
-    plugin_manager = PluginManager()
-    plugin_manager.add_plugins("plan", {"k2": K2PlanPlugin()})
-    plan = Plan(
-        PlanConfig.model_validate(plan_config), context, plugin_manager=plugin_manager
-    )
-    if verbose:
-        plan.add_observer(EventType.FINISHED_EVALUATION, report)
-    plan.run(everest_dict)
+    return plan_dict
 
 
 if __name__ == "__main__":
