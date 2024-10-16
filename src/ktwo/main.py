@@ -24,7 +24,7 @@ from ropt.plugins import PluginManager
 from ropt.results import FunctionResults
 from ruamel import yaml
 
-from ._plugins import K2PlanPlugin
+from ktwo.plugins import K2PlanPlugin
 
 warnings.filterwarnings("ignore")
 
