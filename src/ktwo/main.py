@@ -6,9 +6,11 @@ from pathlib import Path
 from typing import Any, Dict
 
 import click
+from ert.storage import open_storage
 from everest.config import EverestConfig
 from everest.config_file_loader import yaml_file_to_substituted_config_dict
 from everest.simulator import Simulator
+from everest.simulator.everest_to_ert import everest_to_ert_config
 from everest.suite import (
     GRADIENT_COLUMNS,
     PERTURBATIONS_COLUMNS,
@@ -57,20 +59,22 @@ def main(config_file: str, plan_file: str, *, verbose: bool) -> None:
         sys.exit(1)
     _add_results(plan_dict["plan"], output_dir)
 
-    context = OptimizerContext(
-        evaluator=Simulator(everest_config),
-        seed=everest_config.environment.random_seed,
-    )
-    plugin_manager = PluginManager()
-    plugin_manager.add_plugins("plan", {"k2": K2PlanPlugin()})
-    plan = Plan(
-        PlanConfig.model_validate(plan_dict["plan"]),
-        context,
-        plugin_manager=plugin_manager,
-    )
-    if verbose:
-        plan.add_observer(EventType.FINISHED_EVALUATION, report)
-    plan.run(everest_dict)
+    ert_config = everest_to_ert_config(everest_config)
+    with open_storage(ert_config.ens_path, mode="w") as storage:
+        context = OptimizerContext(
+            evaluator=Simulator(everest_config, ert_config, storage),
+            seed=everest_config.environment.random_seed,
+        )
+        plugin_manager = PluginManager()
+        plugin_manager.add_plugins("plan", {"k2": K2PlanPlugin()})
+        plan = Plan(
+            PlanConfig.model_validate(plan_dict["plan"]),
+            context,
+            plugin_manager=plugin_manager,
+        )
+        if verbose:
+            plan.add_observer(EventType.FINISHED_EVALUATION, report)
+        plan.run(everest_dict)
 
 
 def _add_results(plan: Dict[str, Any], output_dir: Path) -> None:
