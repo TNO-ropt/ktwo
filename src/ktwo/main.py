@@ -51,7 +51,7 @@ def main(config_file: str, plan_file: str, *, verbose: bool) -> None:
     if output_dir.exists():
         print(f"Output directory exists: {output_dir}")
         sys.exit(1)
-    _add_results(plan_dict["plan"], output_dir)
+    _add_results(plan_dict["plan"], Path(everest_config.optimization_output_dir))
 
     ert_config = everest_to_ert_config(everest_config)
     with open_storage(ert_config.ens_path, mode="w") as storage:
