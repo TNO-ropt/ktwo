@@ -3,7 +3,7 @@
 import sys
 import warnings
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import click
 from ert.storage import open_storage
@@ -36,14 +36,27 @@ def report(event: Event) -> None:
 @click.command()
 @click.argument("config_file", type=click.Path(exists=True))
 @click.argument("plan_file", type=click.Path(exists=True))
-@click.option("--verbose", "-v/ ", is_flag=True, help="Print optimization results.")
-def main(config_file: str, plan_file: str, *, verbose: bool) -> None:
+@click.option("--verbose", "-v", is_flag=True, help="Print optimization results.")
+@click.option(
+    "--output",
+    "-o",
+    help="Override the output directory.",
+    type=click.Path(),
+    default=None,
+)
+def main(
+    config_file: str, plan_file: str, *, verbose: bool, output: Optional[str]
+) -> None:
     """Run the k2 script.
 
     The script requires an Everest configuration file and a ropt plan file.
     """
     everest_dict = yaml_file_to_substituted_config_dict(config_file)
     plan_dict = yaml.YAML(typ="safe", pure=True).load(Path(plan_file))
+
+    if output is not None:
+        everest_dict.setdefault("environment", {})
+        everest_dict["environment"]["output_folder"] = output
 
     everest_config = EverestConfig.model_validate(everest_dict)
 
