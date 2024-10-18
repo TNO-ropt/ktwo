@@ -12,10 +12,20 @@ anchors:
       with:
         config: $ropt_config
         tags: report
-
+    - run: print
+      with:
+        message: |
+          Optimal result:
+            variables: ${{ $optimal_value.evaluations.variables }}
 plan:
   inputs:
     - everest_config
   variables:
     ropt_config: null
+    optimal_value: null
   steps: *steps
+  results:
+    - run: tracker
+      with:
+        tags: report
+        var: optimal_value
