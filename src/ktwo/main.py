@@ -64,7 +64,7 @@ def main(
     if output_dir.exists():
         print(f"Output directory exists: {output_dir}")
         sys.exit(1)
-    _add_results(plan_dict["plan"], Path(everest_config.optimization_output_dir))
+    _add_results(plan_dict, Path(everest_config.optimization_output_dir))
 
     ert_config = everest_to_ert_config(everest_config)
     with open_storage(ert_config.ens_path, mode="w") as storage:
@@ -84,7 +84,8 @@ def main(
         plan.run(everest_dict)
 
 
-def _add_results(plan: Dict[str, Any], output_dir: Path) -> None:
+def _add_results(config: Dict[str, Any], output_dir: Path) -> None:
+    plan = config["plan"]
     result_columns = {
         "result_id": "ID",
         "batch_id": "Batch",
@@ -133,6 +134,10 @@ def _add_results(plan: Dict[str, Any], output_dir: Path) -> None:
         "evaluations.scaled_perturbed_objectives": "Scaled-Objective",
         "evaluations.scaled_perturbed_constraints": "Scaled-Constraint",
     }
+
+    metadata = config.get("report", {}).get("metadata", {})
+    for key, title in metadata.items():
+        result_columns[f"metadata.{key}"] = title
 
     if "results" not in plan:
         plan["results"] = []
