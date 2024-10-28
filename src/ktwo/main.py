@@ -9,16 +9,14 @@ import click
 from ert.storage import open_storage
 from everest.config import EverestConfig
 from everest.config_file_loader import yaml_file_to_substituted_config_dict
+from everest.optimizer.everest2ropt import everest2ropt
 from everest.simulator import Simulator
 from everest.simulator.everest_to_ert import everest_to_ert_config
 from ropt.config.plan import PlanConfig
 from ropt.enums import EventType
-from ropt.plan import Event, OptimizerContext, Plan
-from ropt.plugins import PluginManager
+from ropt.plan import Event, ExpressionEvaluator, OptimizerContext, Plan
 from ropt.results import FunctionResults
 from ruamel import yaml
-
-from ktwo.plugins import K2PlanPlugin
 
 warnings.filterwarnings("ignore")
 
@@ -71,17 +69,17 @@ def main(
         context = OptimizerContext(
             evaluator=Simulator(everest_config, ert_config, storage),
             seed=everest_config.environment.random_seed,
+            expr=ExpressionEvaluator({"everest2ropt": _everest2ropt}),
         )
-        plugin_manager = PluginManager()
-        plugin_manager.add_plugins("plan", {"k2": K2PlanPlugin()})
-        plan = Plan(
-            PlanConfig.model_validate(plan_dict["plan"]),
-            context,
-            plugin_manager=plugin_manager,
-        )
+        plan = Plan(PlanConfig.model_validate(plan_dict["plan"]), context)
         if verbose:
             plan.add_observer(EventType.FINISHED_EVALUATION, report)
         plan.run(everest_dict)
+
+
+def _everest2ropt(everest_config: Dict[str, Any]) -> Dict[str, Any]:
+    everest_config = EverestConfig.model_validate(everest_config)
+    return everest2ropt(everest_config)
 
 
 def _add_results(config: Dict[str, Any], output_dir: Path) -> None:
