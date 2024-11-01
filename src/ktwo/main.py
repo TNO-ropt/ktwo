@@ -68,12 +68,11 @@ def main(
     with open_storage(ert_config.ens_path, mode="w") as storage:
         context = OptimizerContext(
             evaluator=Simulator(everest_config, ert_config, storage),
-            seed=everest_config.environment.random_seed,
             expr=ExpressionEvaluator({"everest2ropt": _everest2ropt}),
         )
-        plan = Plan(PlanConfig.model_validate(plan_dict["plan"]), context)
         if verbose:
-            plan.add_observer(EventType.FINISHED_EVALUATION, report)
+            context.add_observer(EventType.FINISHED_EVALUATION, report)
+        plan = Plan(PlanConfig.model_validate(plan_dict["plan"]), context)
         plan.run(everest_dict)
 
 
