@@ -3,14 +3,14 @@ anchors:
     - set:
         everest_config['optimization']['max_function_evaluations']: 2
         everest_config['controls'][0]['variables'][3]['max']: 100
-        ropt_config: $everest2ropt($everest_config)
+        ropt_config: $everest2ropt(everest_config)
     - optimizer:
         config: $ropt_config
         tags: report
     - print:
         message: |
           Optimal result:
-            variables: ${{ $optimal_value.evaluations.variables }}
+            variables: <<optimal_value.evaluations.variables>>
 plan:
   inputs:
     - everest_config
