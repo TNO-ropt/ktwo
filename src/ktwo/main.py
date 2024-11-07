@@ -66,8 +66,9 @@ def main(
 
     ert_config = everest_to_ert_config(everest_config)
     with open_storage(ert_config.ens_path, mode="w") as storage:
+        simulator = Simulator(everest_config, ert_config, storage)
         context = OptimizerContext(
-            evaluator=Simulator(everest_config, ert_config, storage),
+            evaluator=simulator.create_forward_model_evaluator_function(),
             expr=ExpressionEvaluator({"everest2ropt": _everest2ropt}),
         )
         if verbose:
