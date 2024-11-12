@@ -68,6 +68,7 @@ def main(
         context = OptimizerContext(
             evaluator=simulator.create_forward_model_evaluator_function(),
             plugin_manager=plugin_manager,
+            variables={"config_path": str(everest_config.config_path.parent.resolve())},
         )
         if verbose:
             context.add_observer(EventType.FINISHED_EVALUATION, _report)

@@ -8,7 +8,7 @@ anchors:
         config: $ropt_config
         tags: report
     - workflow_job:
-      - report 'Best results:'
+      - report 'Best results for:' $(config_path)
       - report $optimal_value.evaluations.variables
     - print: |
         Optimal result:
