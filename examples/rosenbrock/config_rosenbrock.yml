@@ -25,6 +25,11 @@ install_jobs:
   - name: rosenbrock
     source: jobs/ROSENBROCK
 
+install_workflow_jobs:
+  -
+    name: report
+    source: jobs/REPORT
+
 forward_model:
   - rosenbrock \
     --vars point.json \

@@ -7,10 +7,12 @@ anchors:
     - optimizer:
         config: $ropt_config
         tags: report
-    - print:
-        message: |
-          Optimal result:
-            variables: <<optimal_value.evaluations.variables>>
+    - workflow_job:
+      - report 'Best results:'
+      - report $optimal_value.evaluations.variables
+    - print: |
+        Optimal result:
+          variables: <<optimal_value.evaluations.variables>>
 plan:
   inputs:
     - everest_config
