@@ -15,7 +15,7 @@ from ropt.config.plan import PlanConfig
 from ropt.enums import EventType
 from ropt.plan import Event, OptimizerContext, Plan
 from ropt.plugins import PluginManager
-from ropt.results import FunctionResults
+from ropt.results import FunctionResults, convert_to_maximize
 from ruamel import yaml
 
 from ._plugins import K2PlanPlugin
@@ -81,9 +81,10 @@ def _report(event: Event) -> None:
     assert event.results is not None
     for item in event.results:
         if isinstance(item, FunctionResults) and item.functions is not None:
-            print(f"result: {item.result_id}")
-            print(f"  variables: {item.evaluations.variables}")
-            print(f"  objective: {item.functions.weighted_objective}\n")
+            maximization_result = convert_to_maximize(item)
+            print(f"result: {maximization_result.result_id}")
+            print(f"  variables: {maximization_result.evaluations.variables}")
+            print(f"  objective: {maximization_result.functions.weighted_objective}\n")
 
 
 if __name__ == "__main__":
