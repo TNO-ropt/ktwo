@@ -2,19 +2,29 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Dict, Union
+from functools import singledispatchmethod
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Dict, Final, Type, Union
 
-from ropt.config.plan import PlanStepConfig
+from ropt.config.plan import PlanStepConfig, ResultHandlerConfig
+from ropt.plan import Plan
 from ropt.plugins.plan.base import PlanPlugin, PlanStep, ResultHandler
 
 from ._functions import fnc_everest2ropt
+from ._results_table import K2ResultsTableHandler
 from ._workflow_job import K2WorkflowJobStep
 
 if TYPE_CHECKING:
     from ert.storage import Storage
     from everest.config import EverestConfig
-    from ropt.config.plan import ResultHandlerConfig
-    from ropt.plan import Plan
+
+_STEP_OBJECTS: Final[Dict[str, Type[PlanStep]]] = {
+    "workflow_job": K2WorkflowJobStep,
+}
+
+_RESULT_HANDLER_OBJECTS: Final[Dict[str, Type[ResultHandler]]] = {
+    "results_table": K2ResultsTableHandler,
+}
 
 
 class K2PlanPlugin(PlanPlugin):
@@ -24,18 +34,50 @@ class K2PlanPlugin(PlanPlugin):
         self._everest_config = everest_config
         self._storage = storage
 
+    @singledispatchmethod
     def create(  # type: ignore[override]
         self,
         config: Union[PlanStepConfig, ResultHandlerConfig],
         plan: Plan,
     ) -> Union[ResultHandler, PlanStep]:
+        """Initialize the plan plugin.
+
+        See the [ropt.plugins.plan.base.PlanPlugin][] abstract base class.
+
+        # noqa
+        """
+        msg = "Plan config type not implemented."
+        raise NotImplementedError(msg)
+
+    @create.register
+    def _create_step(self, config: PlanStepConfig, plan: Plan) -> PlanStep:
         _, _, step_name = config.run.lower().rpartition("/")
-        assert step_name == "workflow_job"
-        assert isinstance(config, PlanStepConfig)
-        return K2WorkflowJobStep(config, plan, self._everest_config, self._storage)
+        if step_name == "workflow_job":
+            return K2WorkflowJobStep(config, plan, self._everest_config, self._storage)
+        step_obj = _STEP_OBJECTS.get(step_name)
+        if step_obj is not None:
+            return step_obj(config, plan)
+        msg = f"Unknown step type: {config.run}"
+        raise TypeError(msg)
+
+    @create.register
+    def _create_result_handler(
+        self, config: ResultHandlerConfig, plan: Plan
+    ) -> ResultHandler:
+        _, _, name = config.run.lower().rpartition("/")
+        path = Path(self._everest_config.optimization_output_dir)
+        if name == "results_table":
+            return K2ResultsTableHandler(config, path)
+        obj = _RESULT_HANDLER_OBJECTS.get(name)
+        if obj is not None:
+            return obj(config, plan)
+        msg = f"Unknown results handler object type: {config.run}"
+        raise TypeError(msg)
 
     def is_supported(self, method: str, *, explicit: bool) -> bool:  # noqa: ARG002
-        return method.lower() == "workflow_job"
+        return (method.lower() in _RESULT_HANDLER_OBJECTS) or (
+            method.lower() in _STEP_OBJECTS
+        )
 
     @property
     def functions(self) -> Dict[str, Any]:

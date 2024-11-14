@@ -19,7 +19,6 @@ from ropt.results import FunctionResults, convert_to_maximize
 from ruamel import yaml
 
 from ._plugins import K2PlanPlugin
-from ._report import add_results
 
 warnings.filterwarnings("ignore")
 
@@ -55,10 +54,8 @@ def main(
     if output_dir.exists():
         print(f"Output directory exists: {output_dir}")
         sys.exit(1)
-    add_results(plan_dict, Path(everest_config.optimization_output_dir))
 
     plugin_manager = PluginManager()
-
     ert_config = everest_to_ert_config(everest_config)
     with open_storage(ert_config.ens_path, mode="w") as storage:
         simulator = Simulator(everest_config, ert_config, storage)
@@ -82,8 +79,11 @@ def _report(event: Event) -> None:
     for item in event.results:
         if isinstance(item, FunctionResults) and item.functions is not None:
             maximization_result = convert_to_maximize(item)
+            assert maximization_result is not None
+            assert isinstance(maximization_result, FunctionResults)
             print(f"result: {maximization_result.result_id}")
             print(f"  variables: {maximization_result.evaluations.variables}")
+            assert maximization_result.functions is not None
             print(f"  objective: {maximization_result.functions.weighted_objective}\n")
 
 

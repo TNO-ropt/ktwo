@@ -4,18 +4,20 @@ plan:
   variables:
     ropt_config: null
     optimal_value: null
+    iter: 0
   steps:
     - set:
-        everest_config['optimization']['max_function_evaluations']: 5
+        everest_config['optimization']['max_function_evaluations']: 2
         everest_config['controls'][0]['variables'][3]['max']: 100
         ropt_config: $everest2ropt(everest_config)
     - repeat:
         iterations: 2
+        var: iter
         steps:
-        - optimizer:
-            config: $ropt_config
-            tags: report
-            initial_values: $optimal_value
+          - optimizer:
+              config: $ropt_config
+              tags: report
+              initial_values: $optimal_value
     - print:
         message: |
           Optimal result:
@@ -24,3 +26,10 @@ plan:
     - tracker:
         tags: report
         var: optimal_value
+    - metadata:
+        tags: report
+        data: { "iter": $iter }
+    - results_table:
+        tags: report
+        metadata:
+          iter: Iter

@@ -9,6 +9,6 @@ from everest.optimizer.everest2ropt import everest2ropt
 from ropt.config.enopt import EnOptConfig
 
 
-def fnc_everest2ropt(everest_config: Dict[str, Any]) -> Dict[str, Any]:
+def fnc_everest2ropt(everest_config: Dict[str, Any]) -> EnOptConfig:
     everest_config = EverestConfig.model_validate(everest_config)
     return EnOptConfig.model_validate(everest2ropt(everest_config))
