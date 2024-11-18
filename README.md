@@ -7,7 +7,7 @@ Public License v3.0 (a copy is provided in the LICENSE file).
 
 
 ## Dependencies
-`ktwo` has been tested with Python versions 3.11 and 3.12.
+`ktwo` has been tested with Python versions 3.11.
 
 
 ## Installation

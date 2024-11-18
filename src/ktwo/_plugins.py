@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from functools import singledispatchmethod
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, Final, Type, Union
+from typing import TYPE_CHECKING, Any, Final, Type
 
 from ropt.config.plan import PlanStepConfig, ResultHandlerConfig
 from ropt.plan import Plan
@@ -18,11 +18,11 @@ if TYPE_CHECKING:
     from ert.storage import Storage
     from everest.config import EverestConfig
 
-_STEP_OBJECTS: Final[Dict[str, Type[PlanStep]]] = {
+_STEP_OBJECTS: Final[dict[str, Type[PlanStep]]] = {
     "workflow_job": K2WorkflowJobStep,
 }
 
-_RESULT_HANDLER_OBJECTS: Final[Dict[str, Type[ResultHandler]]] = {
+_RESULT_HANDLER_OBJECTS: Final[dict[str, Type[ResultHandler]]] = {
     "results_table": K2ResultsTableHandler,
 }
 
@@ -37,9 +37,9 @@ class K2PlanPlugin(PlanPlugin):
     @singledispatchmethod
     def create(  # type: ignore[override]
         self,
-        config: Union[PlanStepConfig, ResultHandlerConfig],
+        config: PlanStepConfig | ResultHandlerConfig,
         plan: Plan,
-    ) -> Union[ResultHandler, PlanStep]:
+    ) -> ResultHandler | PlanStep:
         """Initialize the plan plugin.
 
         See the [ropt.plugins.plan.base.PlanPlugin][] abstract base class.
@@ -80,5 +80,5 @@ class K2PlanPlugin(PlanPlugin):
         )
 
     @property
-    def functions(self) -> Dict[str, Any]:
+    def functions(self) -> dict[str, Any]:
         return {"everest2ropt": fnc_everest2ropt}

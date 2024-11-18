@@ -2,7 +2,7 @@
 
 from copy import deepcopy
 from pathlib import Path
-from typing import Dict, Final, Literal, Optional
+from typing import Final, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 from ropt.config.plan import ResultHandlerConfig
@@ -13,14 +13,14 @@ from ropt.plugins.plan.base import ResultHandler
 from ropt.report import ResultsTable
 from ropt.results import convert_to_maximize
 
-_TABLE_TYPE_MAP: Final[Dict[str, Literal["functions", "gradients"]]] = {
+_TABLE_TYPE_MAP: Final[dict[str, Literal["functions", "gradients"]]] = {
     "results": "functions",
     "gradients": "gradients",
     "simulations": "functions",
     "perturbations": "gradients",
 }
 
-_COLUMNS: Final[Dict[str, Dict[str, str]]] = {
+_COLUMNS: Final[dict[str, dict[str, str]]] = {
     "results": {
         "result_id": "ID",
         "batch_id": "Batch",
@@ -77,11 +77,11 @@ class K2ResultsTableHandler(ResultHandler):
 
     class K2ResultsTableHandlerWith(BaseModel):
         tags: ItemOrSet[str]
-        name: Optional[str] = None
+        name: str | None = None
         type_: Literal[
             "results", "gradients", "perturbations", "simulations", "defaults"
         ] = Field(default="defaults", alias="type")
-        metadata: Dict[str, str] = {}
+        metadata: dict[str, str] = {}
 
         model_config = ConfigDict(
             extra="forbid",
@@ -103,7 +103,7 @@ class K2ResultsTableHandler(ResultHandler):
             ]
 
         self._tables = []
-        for type_, name in zip(types, names):
+        for type_, name in zip(types, names, strict=False):
             columns = deepcopy(_COLUMNS[type_])
             for key, title in self._with.metadata.items():
                 columns[f"metadata.{key}"] = title

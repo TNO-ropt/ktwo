@@ -9,7 +9,7 @@ plan:
     - set:
         everest_config['optimization']['max_function_evaluations']: 2
         everest_config['controls'][0]['variables'][3]['max']: 100
-        ropt_config: $everest2ropt(everest_config)
+        ropt_config: $everest2ropt($everest_config)
     - repeat:
         iterations: 2
         var: iter
@@ -21,7 +21,7 @@ plan:
     - print:
         message: |
           Optimal result:
-            variables: <<optimal_value.evaluations.variables>>
+            variables: <<$optimal_value.evaluations.variables>>
   results:
     - tracker:
         tags: report

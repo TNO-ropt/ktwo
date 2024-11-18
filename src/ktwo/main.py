@@ -3,7 +3,6 @@
 import sys
 import warnings
 from pathlib import Path
-from typing import Optional
 
 import click
 from ert.storage import open_storage
@@ -35,7 +34,7 @@ warnings.filterwarnings("ignore")
     default=None,
 )
 def main(
-    config_file: str, plan_file: str, *, verbose: bool, output: Optional[str]
+    config_file: str, plan_file: str, *, verbose: bool, output: str | None
 ) -> None:
     """Run k2.
 
