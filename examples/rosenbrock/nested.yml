@@ -1,0 +1,58 @@
+anchors:
+  nested_plan: &nested_plan
+    inputs:
+      - initial_guess
+      - inner_config
+    outputs:
+      - nested_optimum
+    steps:
+      - optimizer:
+          config: $inner_config
+          initial_values: $initial_guess
+          tags: inner
+    results:
+      - tracker:
+          var: nested_optimum
+          tags: inner
+      - metadata:
+          tags: inner
+          data: { "optimizer": "inner" }
+plan:
+  inputs:
+    - everest_config
+  variables:
+    nested_config: null
+    outer_config: null
+    inner_config: null
+  steps:
+    - set:
+        nested_config: $everest_config
+    - set:
+        - everest_config["optimization"]['max_function_evaluations']: 2
+        - everest_config["optimization"]["backend"]: external
+        - everest_config["optimization"]["algorithm"]: dakota/default
+        - everest_config["controls"][0]["variables"][2]["enabled"]: False
+        - everest_config["controls"][0]["variables"][3]["enabled"]: False
+    - set:
+        - nested_config["optimization"]['max_function_evaluations']: 2
+        - nested_config["optimization"]["backend"]: external
+        - nested_config["optimization"]["algorithm"]: dakota/default
+        - nested_config["controls"][0]["variables"][0]["enabled"]: False
+        - nested_config["controls"][0]["variables"][1]["enabled"]: False
+    - set:
+        outer_config: everest2ropt($everest_config)
+        inner_config: everest2ropt($nested_config)
+    - optimizer:
+        config: $outer_config
+        tags: outer
+        nested_optimization:
+          plan: *nested_plan
+          extra_inputs: $inner_config
+  results:
+    - metadata:
+        tags: outer
+        data: { "optimizer": "outer" }
+    - results_table:
+        tags: [inner, outer]
+        metadata:
+          optimizer: Optimizer
