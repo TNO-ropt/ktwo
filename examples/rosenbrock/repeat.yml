@@ -9,7 +9,7 @@ plan:
     - set:
         everest_config['optimization']['max_function_evaluations']: 2
         everest_config['controls'][0]['variables'][3]['max']: 100
-        ropt_config: $everest2ropt($everest_config)
+        ropt_config: everest2ropt($everest_config)
     - repeat:
         iterations: 2
         var: iter
@@ -18,6 +18,12 @@ plan:
               config: $ropt_config
               tags: report
               initial_values: $optimal_value
+          - save:
+              data:
+                iter: $iter
+                objectives: get_objectives($ropt_config, $optimal_value)
+              path: <<$config_path>>/everest_output/objectives-<<$iter>>.json
+              format: json
     - print:
         message: |
           Optimal result:
@@ -33,3 +39,5 @@ plan:
         tags: report
         metadata:
           iter: Iter
+
+plugins: functions.py

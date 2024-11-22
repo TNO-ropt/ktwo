@@ -6,7 +6,7 @@ plan:
     optimal_value: null
   steps:
     - set:
-        ropt_config: $everest2ropt($everest_config)
+        ropt_config: everest2ropt($everest_config)
     - optimizer:
         config: $ropt_config
         tags: report
@@ -19,6 +19,3 @@ plan:
         tags: report
         var: optimal_value
         constraint_tolerance: 1e-6
-    - save:
-        tags: report
-        path: "<<$everest_config['environment']['output_folder']>>/results/result{result_id:02d}"

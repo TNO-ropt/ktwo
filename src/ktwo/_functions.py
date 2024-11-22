@@ -11,6 +11,6 @@ if TYPE_CHECKING:
     from ropt.config.enopt import EnOptConfig
 
 
-def fnc_everest2ropt(everest_config: dict[str, Any]) -> EnOptConfig:
+def _everest2ropt(everest_config: dict[str, Any]) -> EnOptConfig:
     everest_config = EverestConfig.model_validate(everest_config)
     return everest2ropt(everest_config)
