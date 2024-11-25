@@ -1,4 +1,5 @@
 # ruff: noqa
+# type: ignore
 from ropt.results import FunctionResults
 
 results = FunctionResults.from_netcdf("everest_output/results/result00.nc")

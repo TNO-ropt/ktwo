@@ -13,7 +13,6 @@ from everest.simulator import Simulator
 from everest.simulator.everest_to_ert import everest_to_ert_config
 from pydantic import BaseModel, ConfigDict
 from ropt.config.plan import PlanConfig
-from ropt.config.validated_types import ItemOrTuple
 from ropt.enums import EventType
 from ropt.plan import Event, OptimizerContext, Plan
 from ropt.plugins import PluginManager
@@ -34,7 +33,6 @@ class K2Config(BaseModel):
     """
 
     plan: dict[str, Any]
-    plugins: ItemOrTuple[Path] = ()
 
     model_config = ConfigDict(
         extra="ignore",
@@ -49,6 +47,13 @@ class K2Config(BaseModel):
 @click.argument("plan_file", type=click.Path(exists=True))
 @click.option("--verbose", "-v", is_flag=True, help="Print optimization results.")
 @click.option(
+    "--functions",
+    "-f",
+    type=click.Path(),
+    help="Path to user functions.",
+    multiple=True,
+)
+@click.option(
     "--output",
     "-o",
     help="Override the output directory.",
@@ -56,7 +61,12 @@ class K2Config(BaseModel):
     default=None,
 )
 def main(
-    config_file: str, plan_file: str, *, verbose: bool, output: str | None
+    config_file: str,
+    plan_file: str,
+    functions: tuple[str, ...],
+    *,
+    verbose: bool,
+    output: str | None,
 ) -> None:
     """Run k2.
 
@@ -81,7 +91,7 @@ def main(
     with open_storage(ert_config.ens_path, mode="w") as storage:
         simulator = Simulator(everest_config, ert_config, storage)
         plugin_manager.add_plugins(
-            "plan", {"k2": K2PlanPlugin(everest_config, storage, k2config.plugins)}
+            "plan", {"k2": K2PlanPlugin(everest_config, storage, functions)}
         )
         context = OptimizerContext(
             evaluator=simulator.create_forward_model_evaluator_function(),

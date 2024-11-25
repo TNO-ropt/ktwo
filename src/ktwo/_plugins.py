@@ -35,11 +35,17 @@ class K2PlanPlugin(PlanPlugin):
         self,
         everest_config: EverestConfig,
         storage: Storage,
-        plugins: tuple[Path, ...] | None = None,
+        plugins: tuple[Path | str, ...] | None = None,
     ) -> None:
         self._everest_config = everest_config
         self._storage = storage
-        self._plugins: tuple[Path, ...] = () if plugins is None else plugins
+        self._plugins: tuple[Path, ...] = (
+            ()
+            if plugins is None
+            else tuple(
+                item if isinstance(item, Path) else Path(item) for item in plugins
+            )
+        )
 
     @singledispatchmethod
     def create(  # type: ignore[override]

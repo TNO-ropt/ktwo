@@ -39,5 +39,3 @@ plan:
         tags: report
         metadata:
           iter: Iter
-
-plugins: functions.py
