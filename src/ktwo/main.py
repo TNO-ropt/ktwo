@@ -1,7 +1,5 @@
 """The main k2 script."""
 
-import logging
-import os
 import sys
 import warnings
 from pathlib import Path
@@ -12,8 +10,6 @@ from ert.run_models.everest_run_model import EverestRunModel
 from everest.config import EverestConfig
 from everest.config_file_loader import yaml_file_to_substituted_config_dict
 from everest.simulator import Simulator
-from everest.strings import EVEREST
-from everest.util import configure_logger
 from pydantic import BaseModel, ConfigDict
 from ropt.config.plan import PlanConfig
 from ropt.enums import EventType
@@ -78,19 +74,13 @@ def main(
         print(f"Output directory exists: {output_dir}")
         sys.exit(1)
 
-    _configure_loggers(
-        detached_node_dir=everest_config.log_dir,
-        everest_logs_dir=everest_config.log_dir,
-        logging_level=everest_config.logging_level,
-    )
-
-    plugin_manager = PluginManager()
     run_model = EverestRunModel.create(everest_config)
     simulator = Simulator(
         run_model.everest_config,
         run_model.ert_config,
         run_model._storage,  # noqa: SLF001
     )
+    plugin_manager = PluginManager()
     plugin_manager.add_plugins(
         "plan",
         {"k2": K2PlanPlugin(run_model.everest_config, run_model._storage, functions)},  # noqa: SLF001
@@ -118,37 +108,6 @@ def _report(event: Event) -> None:
             print(f"  variables: {maximization_result.evaluations.variables}")
             assert maximization_result.functions is not None
             print(f"  objective: {maximization_result.functions.weighted_objective}\n")
-
-
-def _configure_loggers(
-    detached_node_dir: str,
-    everest_logs_dir: str,
-    logging_level: int,
-) -> None:
-    configure_logger(
-        name="res",
-        file_path=os.path.join(detached_node_dir, "simulations.log"),  # noqa: PTH118
-        log_level=logging.INFO,
-    )
-
-    configure_logger(
-        name=EVEREST,
-        file_path=os.path.join(everest_logs_dir, "everest.log"),  # noqa: PTH118
-        log_level=logging_level,
-        log_to_azure=True,
-    )
-
-    configure_logger(
-        name="forward_models",
-        file_path=os.path.join(everest_logs_dir, "forward_models.log"),  # noqa: PTH118
-        log_level=logging_level,
-    )
-
-    configure_logger(
-        name="ropt",
-        file_path=os.path.join(everest_logs_dir, "ropt.log"),  # noqa: PTH118
-        log_level=logging_level,
-    )
 
 
 if __name__ == "__main__":
