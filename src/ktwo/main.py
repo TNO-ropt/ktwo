@@ -8,11 +8,10 @@ from pathlib import Path
 from typing import Any
 
 import click
-from ert.storage import open_storage
+from ert.run_models.everest_run_model import EverestRunModel
 from everest.config import EverestConfig
 from everest.config_file_loader import yaml_file_to_substituted_config_dict
 from everest.simulator import Simulator
-from everest.simulator.everest_to_ert import everest_to_ert_config
 from everest.strings import EVEREST
 from everest.util import configure_logger
 from pydantic import BaseModel, ConfigDict
@@ -97,21 +96,25 @@ def main(
     )
 
     plugin_manager = PluginManager()
-    ert_config = everest_to_ert_config(everest_config)
-    with open_storage(ert_config.ens_path, mode="w") as storage:
-        simulator = Simulator(everest_config, ert_config, storage)
-        plugin_manager.add_plugins(
-            "plan", {"k2": K2PlanPlugin(everest_config, storage, functions)}
-        )
-        context = OptimizerContext(
-            evaluator=simulator.create_forward_model_evaluator_function(),
-            plugin_manager=plugin_manager,
-            variables={"config_path": str(everest_config.config_path.parent.resolve())},
-        )
-        if verbose:
-            context.add_observer(EventType.FINISHED_EVALUATION, _report)
-        plan = Plan(PlanConfig.model_validate(k2config.plan), context)
-        plan.run(everest_dict)
+    run_model = EverestRunModel.create(everest_config)
+    simulator = Simulator(
+        run_model.everest_config,
+        run_model.ert_config,
+        run_model._storage,  # noqa: SLF001
+    )
+    plugin_manager.add_plugins(
+        "plan",
+        {"k2": K2PlanPlugin(run_model.everest_config, run_model._storage, functions)},  # noqa: SLF001
+    )
+    context = OptimizerContext(
+        evaluator=simulator.create_forward_model_evaluator_function(),
+        plugin_manager=plugin_manager,
+        variables={"config_path": str(everest_config.config_path.parent.resolve())},
+    )
+    if verbose:
+        context.add_observer(EventType.FINISHED_EVALUATION, _report)
+    plan = Plan(PlanConfig.model_validate(k2config.plan), context)
+    plan.run(everest_dict)
 
 
 def _report(event: Event) -> None:
