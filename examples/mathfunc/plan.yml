@@ -14,7 +14,7 @@ plan:
         message: |
           Optimal result:
             variables: <<$optimal_value.evaluations.variables>>
-  results:
+  handlers:
     - tracker:
         tags: report
         var: optimal_value

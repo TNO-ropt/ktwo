@@ -5,12 +5,14 @@ anchors:
       - inner_config
     outputs:
       - nested_optimum
+    bubble_up:
+      - inner
     steps:
       - optimizer:
           config: $inner_config
           initial_values: $initial_guess
           tags: inner
-    results:
+    handlers:
       - tracker:
           var: nested_optimum
           tags: inner
@@ -48,7 +50,7 @@ plan:
         nested_optimization:
           plan: *nested_plan
           extra_inputs: $inner_config
-  results:
+  handlers:
     - metadata:
         tags: outer
         data: { "optimizer": "outer" }

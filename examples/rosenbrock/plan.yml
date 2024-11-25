@@ -20,7 +20,7 @@ plan:
     ropt_config: null
     optimal_value: null
   steps: *steps
-  results:
+  handlers:
     - tracker:
         tags: report
         var: optimal_value
