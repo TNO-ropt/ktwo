@@ -45,20 +45,7 @@ class K2Config(BaseModel):
 @click.argument("config_file", type=click.Path(exists=True))
 @click.argument("plan_file", type=click.Path(exists=True))
 @click.option("--verbose", "-v", is_flag=True, help="Print optimization results.")
-@click.option(
-    "--functions",
-    "-f",
-    type=click.Path(),
-    help="Path to user functions.",
-    multiple=True,
-)
-def main(
-    config_file: str,
-    plan_file: str,
-    functions: tuple[str, ...],
-    *,
-    verbose: bool,
-) -> None:
+def main(config_file: str, plan_file: str, *, verbose: bool) -> None:
     """Run k2.
 
     k2 requires an Everest configuration file and a ropt plan file.
@@ -83,7 +70,7 @@ def main(
     plugin_manager = PluginManager()
     plugin_manager.add_plugins(
         "plan",
-        {"k2": K2PlanPlugin(run_model.everest_config, run_model._storage, functions)},  # noqa: SLF001
+        {"k2": K2PlanPlugin(run_model.everest_config, run_model._storage)},  # noqa: SLF001
     )
     context = OptimizerContext(
         evaluator=simulator.create_forward_model_evaluator_function(),

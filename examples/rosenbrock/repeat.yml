@@ -21,7 +21,7 @@ plan:
           - save:
               data:
                 iter: $iter
-                objectives: get_objectives($ropt_config, $optimal_value)
+                objectives: results2dict($ropt_config, $optimal_value.evaluations, "objectives")
               path: <<$config_path>>/everest_output/objectives-<<$iter>>.json
               format: json
     - print:

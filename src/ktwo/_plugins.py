@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import importlib
 from functools import singledispatchmethod
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Final, Type
@@ -11,7 +10,7 @@ from ropt.config.plan import PlanStepConfig, ResultHandlerConfig
 from ropt.plan import Plan
 from ropt.plugins.plan.base import PlanPlugin, PlanStep, ResultHandler
 
-from ._functions import _everest2ropt
+from ._functions import _everest2ropt, _results2dict
 from ._results_table import K2ResultsTableHandler
 from ._workflow_job import K2WorkflowJobStep
 
@@ -31,21 +30,9 @@ _RESULT_HANDLER_OBJECTS: Final[dict[str, Type[ResultHandler]]] = {
 class K2PlanPlugin(PlanPlugin):
     """Default plan plugin class."""
 
-    def __init__(
-        self,
-        everest_config: EverestConfig,
-        storage: Storage,
-        plugins: tuple[Path | str, ...] | None = None,
-    ) -> None:
+    def __init__(self, everest_config: EverestConfig, storage: Storage) -> None:
         self._everest_config = everest_config
         self._storage = storage
-        self._plugins: tuple[Path, ...] = (
-            ()
-            if plugins is None
-            else tuple(
-                item if isinstance(item, Path) else Path(item) for item in plugins
-            )
-        )
 
     @singledispatchmethod
     def create(  # type: ignore[override]
@@ -94,15 +81,7 @@ class K2PlanPlugin(PlanPlugin):
 
     @property
     def functions(self) -> dict[str, Any]:
-        plan_functions = {"everest2ropt": _everest2ropt}
-        for idx, plugin in enumerate(self._plugins):
-            if plugin.exists():
-                spec = importlib.util.spec_from_file_location(
-                    f"__k2_plugin__{idx}", plugin
-                )
-                assert spec is not None
-                assert spec.loader is not None
-                module = importlib.util.module_from_spec(spec)
-                spec.loader.exec_module(module)
-                plan_functions.update(module.functions)
-        return plan_functions
+        return {
+            "everest2ropt": _everest2ropt,
+            "results2dict": _results2dict,
+        }
