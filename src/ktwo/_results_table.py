@@ -128,7 +128,5 @@ class K2ResultsTableHandler(ResultHandler):
             and (event.tags & self._with.tags)
         ):
             for table in self._tables:
-                table.add_results(
-                    event.config, (convert_to_maximize(item) for item in event.results)
-                )
+                table.add_results((convert_to_maximize(item) for item in event.results))
         return event

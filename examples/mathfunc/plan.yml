@@ -2,13 +2,10 @@ plan:
   inputs:
     - everest_config
   variables:
-    ropt_config: null
     optimal_value: null
   steps:
-    - set:
-        ropt_config: everest2ropt($everest_config)
     - optimizer:
-        config: $ropt_config
+        config: everest2ropt($everest_config)
         tags: report
     - print:
         message: |

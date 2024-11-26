@@ -3,9 +3,8 @@ anchors:
     - set:
         everest_config['optimization']['max_function_evaluations']: 2
         everest_config['controls'][0]['variables'][3]['max']: 100
-        ropt_config: everest2ropt($everest_config)
     - optimizer:
-        config: $ropt_config
+        config: everest2ropt($everest_config)
         tags: report
     - workflow_job:
       - report 'Best results for:' $config_path
