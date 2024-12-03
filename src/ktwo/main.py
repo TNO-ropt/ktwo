@@ -1,15 +1,18 @@
 """The main k2 script."""
 
+import datetime
 import sys
 import warnings
 from pathlib import Path
 from typing import Any
 
 import click
+from ert.config import QueueSystem
+from ert.ensemble_evaluator import EvaluatorServerConfig
 from ert.run_models.everest_run_model import EverestRunModel
 from everest.config import EverestConfig
 from everest.config_file_loader import yaml_file_to_substituted_config_dict
-from everest.simulator import Simulator
+from everest.simulator.everest_to_ert import everest_to_ert_config
 from pydantic import BaseModel, ConfigDict
 from ropt.config.plan import PlanConfig
 from ropt.enums import EventType
@@ -21,6 +24,63 @@ from ruamel import yaml
 from ._plugins import K2PlanPlugin
 
 warnings.filterwarnings("ignore")
+
+
+class K2RunModel(EverestRunModel):
+    """The K2 run model."""
+
+    def __init__(self, config: dict[str, Any]) -> None:
+        """Initialize the run model.
+
+        Args:
+            config: Everest configuration.
+        """
+        self._everest_config_dict = config
+        everest_config = EverestConfig.model_validate(config)
+
+        output_dir = Path(everest_config.output_dir)
+        if output_dir.exists():
+            print(f"Output directory exists: {output_dir}")
+            sys.exit(1)
+
+        super().__init__(
+            config=everest_to_ert_config(everest_config),
+            everest_config=everest_config,
+            simulation_callback=lambda _: None,
+            optimization_callback=lambda: None,
+        )
+
+    def run_plan(self, plan: PlanConfig, *, verbose: bool = False) -> None:
+        """Run an optimization plan.
+
+        Args:
+            plan: The plan to run
+        """
+        self.eval_server_cfg = EvaluatorServerConfig(
+            custom_port_range=range(49152, 51819)
+            if self.ert_config.queue_config.queue_system == QueueSystem.LOCAL
+            else None
+        )
+        self._experiment = self._storage.create_experiment(
+            name=f"EnOpt@{datetime.datetime.now().strftime('%Y-%m-%d@%H:%M:%S')}",  # noqa: DTZ005
+            parameters=self.ert_config.ensemble_config.parameter_configuration,
+            responses=self.ert_config.ensemble_config.response_configuration,
+        )
+        plugin_manager = PluginManager()
+        plugin_manager.add_plugins(
+            "plan",
+            {"k2": K2PlanPlugin(self.everest_config, self._storage)},
+        )
+        context = OptimizerContext(
+            evaluator=self._forward_model_evaluator,
+            plugin_manager=plugin_manager,
+            variables={
+                "config_path": str(self.everest_config.config_path.parent.resolve())
+            },
+        )
+        if verbose:
+            context.add_observer(EventType.FINISHED_EVALUATION, _report)
+        Plan(plan, context).run(self._everest_config_dict)
 
 
 class K2Config(BaseModel):
@@ -48,39 +108,15 @@ class K2Config(BaseModel):
 def main(config_file: str, plan_file: str, *, verbose: bool) -> None:
     """Run k2.
 
-    k2 requires an Everest configuration file and a ropt plan file.
+    k2 requires an Everest configuration file and a K2 config file.
     """
     everest_dict = yaml_file_to_substituted_config_dict(config_file)
-    everest_config = EverestConfig.model_validate(everest_dict)
-
-    config_dict = yaml.YAML(typ="safe", pure=True).load(Path(plan_file))
-    k2config = K2Config.model_validate(config_dict)
-
-    output_dir = Path(everest_config.output_dir)
-    if output_dir.exists():
-        print(f"Output directory exists: {output_dir}")
-        sys.exit(1)
-
-    run_model = EverestRunModel.create(everest_config)
-    simulator = Simulator(
-        run_model.everest_config,
-        run_model.ert_config,
-        run_model._storage,  # noqa: SLF001
+    k2_dict = yaml.YAML(typ="safe", pure=True).load(Path(plan_file))
+    run_model = K2RunModel(everest_dict)
+    run_model.run_plan(
+        PlanConfig.model_validate(K2Config.model_validate(k2_dict).plan),
+        verbose=verbose,
     )
-    plugin_manager = PluginManager()
-    plugin_manager.add_plugins(
-        "plan",
-        {"k2": K2PlanPlugin(run_model.everest_config, run_model._storage)},  # noqa: SLF001
-    )
-    context = OptimizerContext(
-        evaluator=simulator.create_forward_model_evaluator_function(),
-        plugin_manager=plugin_manager,
-        variables={"config_path": str(everest_config.config_path.parent.resolve())},
-    )
-    if verbose:
-        context.add_observer(EventType.FINISHED_EVALUATION, _report)
-    plan = Plan(PlanConfig.model_validate(k2config.plan), context)
-    plan.run(everest_dict)
 
 
 def _report(event: Event) -> None:
