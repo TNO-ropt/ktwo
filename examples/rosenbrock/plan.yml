@@ -1,7 +1,7 @@
 anchors:
   steps: &steps
     - set:
-        everest_config['optimization']['max_function_evaluations']: 2
+        everest_config['optimization']['max_function_evaluations']: 20
         everest_config['controls'][0]['variables'][3]['max']: 100
     - optimizer:
         config: everest2ropt($everest_config)

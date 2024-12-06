@@ -68,8 +68,7 @@ class K2RunModel(EverestRunModel):
         )
         plugin_manager = PluginManager()
         plugin_manager.add_plugins(
-            "plan",
-            {"k2": K2PlanPlugin(self.everest_config, self._storage)},
+            "plan", {"k2": K2PlanPlugin(self.everest_config, self._storage)}
         )
         context = OptimizerContext(
             evaluator=self._forward_model_evaluator,
@@ -108,12 +107,11 @@ class K2Config(BaseModel):
 def main(config_file: str, plan_file: str, *, verbose: bool) -> None:
     """Run k2.
 
-    k2 requires an Everest configuration file and a K2 config file.
+    K2 requires an Everest configuration file and a K2 config file.
     """
     everest_dict = yaml_file_to_substituted_config_dict(config_file)
     k2_dict = yaml.YAML(typ="safe", pure=True).load(Path(plan_file))
-    run_model = K2RunModel(everest_dict)
-    run_model.run_plan(
+    K2RunModel(everest_dict).run_plan(
         PlanConfig.model_validate(K2Config.model_validate(k2_dict).plan),
         verbose=verbose,
     )
