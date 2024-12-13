@@ -15,8 +15,9 @@ import numpy as np
 from ert.config import QueueSystem
 from ert.ensemble_evaluator import EvaluatorServerConfig
 from ert.run_models.everest_run_model import EverestRunModel
-from everest.config import EverestConfig
+from everest.config import EverestConfig, ServerConfig
 from everest.config_file_loader import yaml_file_to_substituted_config_dict
+from everest.detached.jobs.everserver import _configure_loggers
 from everest.simulator.everest_to_ert import everest_to_ert_config
 from pydantic import BaseModel, ConfigDict
 from ropt.config.plan import PlanConfig
@@ -52,6 +53,18 @@ class K2RunModel(EverestRunModel):
             if output_dir.exists():
                 print(f"Output directory exists: {output_dir}")
                 sys.exit(1)
+
+        _configure_loggers(
+            detached_dir=Path(
+                ServerConfig.get_detached_node_dir(everest_config.output_dir)
+            ),
+            log_dir=(
+                Path(everest_config.output_dir) / "logs"
+                if everest_config.log_dir is None
+                else Path(everest_config.log_dir)
+            ),
+            logging_level=everest_config.logging_level,
+        )
 
         super().__init__(
             config=everest_to_ert_config(everest_config),
