@@ -1,12 +1,17 @@
 """The main k2 script."""
 
+from __future__ import annotations
+
 import datetime
+import pickle
 import sys
 import warnings
+from contextlib import suppress
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import click
+import numpy as np
 from ert.config import QueueSystem
 from ert.ensemble_evaluator import EvaluatorServerConfig
 from ert.run_models.everest_run_model import EverestRunModel
@@ -23,13 +28,17 @@ from ruamel import yaml
 
 from ._plugins import K2PlanPlugin
 
+if TYPE_CHECKING:
+    from numpy.typing import NDArray
+    from ropt.evaluator import EvaluatorContext, EvaluatorResult
+
 warnings.filterwarnings("ignore")
 
 
 class K2RunModel(EverestRunModel):
     """The K2 run model."""
 
-    def __init__(self, config: dict[str, Any]) -> None:
+    def __init__(self, config: dict[str, Any], *, restart: bool) -> None:
         """Initialize the run model.
 
         Args:
@@ -38,10 +47,11 @@ class K2RunModel(EverestRunModel):
         self._everest_config_dict = config
         everest_config = EverestConfig.model_validate(config)
 
-        output_dir = Path(everest_config.output_dir)
-        if output_dir.exists():
-            print(f"Output directory exists: {output_dir}")
-            sys.exit(1)
+        if not restart:
+            output_dir = Path(everest_config.output_dir)
+            if output_dir.exists():
+                print(f"Output directory exists: {output_dir}")
+                sys.exit(1)
 
         super().__init__(
             config=everest_to_ert_config(everest_config),
@@ -49,6 +59,8 @@ class K2RunModel(EverestRunModel):
             simulation_callback=lambda _: None,
             optimization_callback=lambda: None,
         )
+
+        self._restart_data: dict[str, Any] = {}
 
     def run_plan(self, plan: PlanConfig, *, verbose: bool = False) -> None:
         """Run an optimization plan.
@@ -71,15 +83,48 @@ class K2RunModel(EverestRunModel):
             "plan", {"k2": K2PlanPlugin(self.everest_config, self._storage)}
         )
         context = OptimizerContext(
-            evaluator=self._forward_model_evaluator,
+            evaluator=self._run_forward_model,
             plugin_manager=plugin_manager,
             variables={
                 "config_path": str(self.everest_config.config_path.parent.resolve())
             },
         )
+        context.add_observer(EventType.FINISHED_EVALUATION, self._store_restart_data)
         if verbose:
             context.add_observer(EventType.FINISHED_EVALUATION, _report)
         Plan(plan, context).run(self._everest_config_dict)
+
+    def _run_forward_model(
+        self, control_values: NDArray[np.float64], metadata: EvaluatorContext
+    ) -> EvaluatorResult:
+        self._restart_data = {}
+
+        path = Path(self.everest_config.output_dir) / "restart"
+        with (
+            suppress(FileNotFoundError),
+            (path / f"batch{self.batch_id}.pickle").open("rb") as file_obj,
+        ):
+            stored_result = pickle.load(file_obj)  # noqa: S301
+            if self.batch_id == stored_result["batch_id"] and np.allclose(
+                control_values, stored_result["control_values"]
+            ):
+                self.batch_id += 1
+                return stored_result["evaluator_result"]
+
+        self._restart_data = {
+            "batch_id": self.batch_id,
+            "control_values": control_values,
+            "evaluator_result": self._forward_model_evaluator(control_values, metadata),
+        }
+        return self._restart_data["evaluator_result"]
+
+    def _store_restart_data(self, event: Event) -> None:
+        if event.exit_code is None and self._restart_data:
+            path = Path(self.everest_config.output_dir) / "restart"
+            batch = self._restart_data["batch_id"]
+            path.mkdir(exist_ok=True)
+            with (path / f"batch{batch}.pickle").open("wb") as file_obj:
+                pickle.dump(self._restart_data, file_obj)
 
 
 class K2Config(BaseModel):
@@ -104,14 +149,15 @@ class K2Config(BaseModel):
 @click.argument("config_file", type=click.Path(exists=True))
 @click.argument("plan_file", type=click.Path(exists=True))
 @click.option("--verbose", "-v", is_flag=True, help="Print optimization results.")
-def main(config_file: str, plan_file: str, *, verbose: bool) -> None:
+@click.option("--restart", "-r", is_flag=True, help="Allow restart.")
+def main(config_file: str, plan_file: str, *, verbose: bool, restart: bool) -> None:
     """Run k2.
 
     K2 requires an Everest configuration file and a K2 config file.
     """
     everest_dict = yaml_file_to_substituted_config_dict(config_file)
     k2_dict = yaml.YAML(typ="safe", pure=True).load(Path(plan_file))
-    K2RunModel(everest_dict).run_plan(
+    K2RunModel(everest_dict, restart=restart).run_plan(
         PlanConfig.model_validate(K2Config.model_validate(k2_dict).plan),
         verbose=verbose,
     )
