@@ -86,11 +86,13 @@ class K2RunModel(EverestRunModel):
             if self.ert_config.queue_config.queue_system == QueueSystem.LOCAL
             else None
         )
-        self._experiment = self._storage.create_experiment(
-            name=f"EnOpt@{datetime.datetime.now().strftime('%Y-%m-%d@%H:%M:%S')}",  # noqa: DTZ005
-            parameters=self.ert_config.ensemble_config.parameter_configuration,
-            responses=self.ert_config.ensemble_config.response_configuration,
-        )
+        self._experiment = next(self._storage.experiments, None)
+        if self._experiment is None:
+            self._experiment = self._storage.create_experiment(
+                name=f"EnOpt@{datetime.datetime.now().strftime('%Y-%m-%d@%H:%M:%S')}",  # noqa: DTZ005
+                parameters=self.ert_config.ensemble_config.parameter_configuration,
+                responses=self.ert_config.ensemble_config.response_configuration,
+            )
         plugin_manager = PluginManager()
         plugin_manager.add_plugins(
             "plan", {"k2": K2PlanPlugin(self.everest_config, self._storage)}
