@@ -4,15 +4,19 @@ from __future__ import annotations
 
 import warnings
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import click
 from everest.config_file_loader import yaml_file_to_substituted_config_dict
 from pydantic import BaseModel, ConfigDict
 from ropt.config.plan import PlanConfig
+from ropt.results import FunctionResults, convert_to_maximize
 from ruamel import yaml
 
 from ._run_model import K2RunModel
+
+if TYPE_CHECKING:
+    from ropt.plan import Event
 
 warnings.filterwarnings("ignore")
 
@@ -49,8 +53,22 @@ def main(config_file: str, plan_file: str, *, verbose: bool, restart: bool) -> N
     k2_dict = yaml.YAML(typ="safe", pure=True).load(Path(plan_file))
     K2RunModel(everest_dict, restart=restart).run_plan(
         PlanConfig.model_validate(K2Config.model_validate(k2_dict).plan),
-        verbose=verbose,
+        report=_report if verbose else None,
     )
+
+
+def _report(event: Event) -> None:
+    """Report results of an evaluation."""
+    assert event.results is not None
+    for item in event.results:
+        if isinstance(item, FunctionResults) and item.functions is not None:
+            maximization_result = convert_to_maximize(item)
+            assert maximization_result is not None
+            assert isinstance(maximization_result, FunctionResults)
+            print(f"result: {maximization_result.result_id}")
+            print(f"  variables: {maximization_result.evaluations.variables}")
+            assert maximization_result.functions is not None
+            print(f"  objective: {maximization_result.functions.weighted_objective}\n")
 
 
 if __name__ == "__main__":

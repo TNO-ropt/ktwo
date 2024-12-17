@@ -6,7 +6,7 @@ import pickle
 import sys
 from contextlib import suppress
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Callable
 
 import numpy as np
 from ert.config import QueueSystem
@@ -18,7 +18,6 @@ from everest.simulator.everest_to_ert import everest_to_ert_config
 from ropt.enums import EventType
 from ropt.plan import Event, OptimizerContext, Plan
 from ropt.plugins import PluginManager
-from ropt.results import FunctionResults, convert_to_maximize
 
 from ._plugins import K2PlanPlugin
 
@@ -67,7 +66,9 @@ class K2RunModel(EverestRunModel):
 
         self._restart_data: dict[str, Any] = {}
 
-    def run_plan(self, plan: PlanConfig, *, verbose: bool = False) -> None:
+    def run_plan(
+        self, plan: PlanConfig, *, report: Callable[[Event], None] | None = None
+    ) -> None:
         """Run an optimization plan.
 
         Args:
@@ -104,8 +105,8 @@ class K2RunModel(EverestRunModel):
             },
         )
         context.add_observer(EventType.FINISHED_EVALUATION, self._store_restart_data)
-        if verbose:
-            context.add_observer(EventType.FINISHED_EVALUATION, _report)
+        if report:
+            context.add_observer(EventType.FINISHED_EVALUATION, report)
         Plan(plan, context).run(self._everest_config_dict)
 
     def _run_forward_model(
@@ -139,17 +140,3 @@ class K2RunModel(EverestRunModel):
             path.mkdir(exist_ok=True)
             with (path / f"batch{batch}.pickle").open("wb") as file_obj:
                 pickle.dump(self._restart_data, file_obj)
-
-
-def _report(event: Event) -> None:
-    """Report results of an evaluation."""
-    assert event.results is not None
-    for item in event.results:
-        if isinstance(item, FunctionResults) and item.functions is not None:
-            maximization_result = convert_to_maximize(item)
-            assert maximization_result is not None
-            assert isinstance(maximization_result, FunctionResults)
-            print(f"result: {maximization_result.result_id}")
-            print(f"  variables: {maximization_result.evaluations.variables}")
-            assert maximization_result.functions is not None
-            print(f"  objective: {maximization_result.functions.weighted_objective}\n")
