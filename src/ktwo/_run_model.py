@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import datetime
 import pickle
 import sys
 from contextlib import suppress
@@ -79,10 +78,17 @@ class K2RunModel(EverestRunModel):
             if self.ert_config.queue_config.queue_system == QueueSystem.LOCAL
             else None
         )
-        self._experiment = next(self._storage.experiments, None)
+        self._experiment = next(
+            (
+                item
+                for item in self._storage.experiments
+                if item.name == self.everest_config.config_file
+            ),
+            None,
+        )
         if self._experiment is None:
             self._experiment = self._storage.create_experiment(
-                name=f"EnOpt@{datetime.datetime.now().strftime('%Y-%m-%d@%H:%M:%S')}",  # noqa: DTZ005
+                name=self.everest_config.config_file,
                 parameters=self.ert_config.ensemble_config.parameter_configuration,
                 responses=self.ert_config.ensemble_config.response_configuration,
             )
