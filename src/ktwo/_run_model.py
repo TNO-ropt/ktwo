@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import pickle
+import shutil
 import sys
+from contextlib import suppress
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable
 
@@ -38,7 +40,8 @@ class K2RunModel(EverestRunModel):
         self._everest_config_dict = config
         everest_config = EverestConfig.model_validate(config)
 
-        if not restart:
+        self._restart = restart
+        if not self._restart:
             output_dir = Path(everest_config.output_dir)
             if output_dir.exists():
                 print(f"Output directory exists: {output_dir}")
@@ -108,6 +111,22 @@ class K2RunModel(EverestRunModel):
             context.add_observer(EventType.FINISHED_EVALUATION, report)
         Plan(plan, context).run(self._everest_config_dict)
 
+    def _try_restart(
+        self, control_values: NDArray[np.float64]
+    ) -> EvaluatorResult | None:
+        path = Path(self._everest_config.output_dir) / "restart"
+        with (
+            suppress(FileNotFoundError),
+            (path / f"batch{self._batch_id}.pickle").open("rb") as file_obj,
+        ):
+            stored_result = pickle.load(file_obj)  # noqa: S301
+            if self._batch_id == stored_result["batch_id"] and np.allclose(
+                control_values, stored_result["control_values"]
+            ):
+                self._batch_id += 1
+                return stored_result["evaluator_result"]
+        return None
+
     def _run_forward_model(
         self, control_values: NDArray[np.float64], evaluator_context: EvaluatorContext
     ) -> EvaluatorResult:
@@ -115,34 +134,38 @@ class K2RunModel(EverestRunModel):
         self._restart_data = {}
         self._status = None
 
-        # Get any cached results that may be useful:
-        cached = self._get_cached_results(control_values, evaluator_context)
+        # Get cached_results:
+        cached_results = self._get_cached_results(control_values, evaluator_context)
 
-        # Create the case to run:
-        case_data = self._init_case_data(control_values, evaluator_context, cached)
+        # Create the batch to run:
+        batch_data = self._init_batch_data(
+            control_values, evaluator_context, cached_results
+        )
 
-        # Check for a stored result:
-        path = Path(self._everest_config.output_dir) / "restart"
-        try:
-            with (path / f"batch{self._batch_id}.pickle").open("rb") as file_obj:
-                stored_result = pickle.load(file_obj)  # noqa: S301
-                if self._batch_id == stored_result["batch_id"] and np.allclose(
-                    control_values, stored_result["control_values"]
-                ):
-                    self._batch_id += 1
-                    evaluator_result = stored_result["evaluator_result"]
-        except FileNotFoundError:
-            # Initialize a new ensemble in storage:
-            assert self._experiment
-            ensemble = self._experiment.create_ensemble(
-                name=f"batch_{self._batch_id}",
-                ensemble_size=len(case_data),
-            )
-            for sim_id, controls in enumerate(case_data.values()):
-                self._setup_sim(sim_id, controls, ensemble)
+        # Get the evaluator result:
+        evaluator_result = self._try_restart(control_values)
+        if evaluator_result is None:
+            assert self._experiment is not None
+            ensemble_name = f"batch_{self._batch_id}"
+            try:
+                # Try to find an existing ensemble in storage:
+                ensemble = self._experiment.get_ensemble_by_name(ensemble_name)
+            except KeyError:
+                # Initialize a new ensemble in storage:
+                ensemble = self._experiment.create_ensemble(
+                    name=ensemble_name, ensemble_size=len(batch_data)
+                )
+                for sim_id, controls in enumerate(batch_data.values()):
+                    self._setup_sim(sim_id, controls, ensemble)
 
-            # Evaluate the case:
-            run_args = self._get_run_args(ensemble, evaluator_context, case_data)
+            # Get the run args:
+            run_args = self._get_run_args(ensemble, evaluator_context, batch_data)
+
+            # Remove any existing runpath directories:
+            for run_arg in run_args:
+                shutil.rmtree(run_arg.runpath, ignore_errors=True)
+
+            # Evaluate the batch:
             self._context_env.update(
                 {
                     "_ERT_EXPERIMENT_ID": str(ensemble.experiment_id),
@@ -157,9 +180,9 @@ class K2RunModel(EverestRunModel):
             self._delete_runpath(run_args)
 
             # Gather the results and create the result for ropt:
-            results = self._gather_results(ensemble)
-            evaluator_result = self._get_evaluator_result(
-                control_values, evaluator_context, case_data, results, cached
+            results = self._gather_simulation_results(ensemble)
+            evaluator_result = self._make_evaluator_result(
+                control_values, evaluator_context, batch_data, results, cached_results
             )
 
             # Save restart data:
@@ -176,7 +199,7 @@ class K2RunModel(EverestRunModel):
         self._add_results_to_cache(
             control_values,
             evaluator_context,
-            case_data,
+            batch_data,
             evaluator_result.objectives,
             evaluator_result.constraints,
         )
