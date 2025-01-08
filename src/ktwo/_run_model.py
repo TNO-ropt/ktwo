@@ -182,7 +182,7 @@ class K2RunModel(EverestRunModel):
             # Gather the results and create the result for ropt:
             results = self._gather_simulation_results(ensemble)
             evaluator_result = self._make_evaluator_result(
-                control_values, evaluator_context, batch_data, results, cached_results
+                control_values, batch_data, results, cached_results
             )
 
             # Save restart data:
