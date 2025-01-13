@@ -74,7 +74,7 @@ class K2PlanPlugin(PlanPlugin):
         msg = f"Unknown results handler object type: {config.run}"
         raise TypeError(msg)
 
-    def is_supported(self, method: str, *, explicit: bool) -> bool:  # noqa: ARG002
+    def is_supported(self, method: str) -> bool:
         return (method.lower() in _RESULT_HANDLER_OBJECTS) or (
             method.lower() in _STEP_OBJECTS
         )

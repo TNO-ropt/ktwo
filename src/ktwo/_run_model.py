@@ -96,8 +96,11 @@ class K2RunModel(EverestRunModel):
                 responses=self.ert_config.ensemble_config.response_configuration,
             )
         plugin_manager = PluginManager()
-        plugin_manager.add_plugins(
-            "plan", {"k2": K2PlanPlugin(self._everest_config, self._storage)}
+        plugin_manager.add_plugin(
+            "plan",
+            "k2",
+            K2PlanPlugin(self._everest_config, self._storage),
+            prioritize=True,
         )
         context = OptimizerContext(
             evaluator=self._run_forward_model,
