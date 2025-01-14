@@ -59,8 +59,7 @@ def main(config_file: str, plan_file: str, *, verbose: bool, restart: bool) -> N
 
 def _report(event: Event) -> None:
     """Report results of an evaluation."""
-    assert event.results is not None
-    for item in event.results:
+    for item in event.data["results"]:
         if isinstance(item, FunctionResults) and item.functions is not None:
             maximization_result = convert_to_maximize(item)
             assert maximization_result is not None

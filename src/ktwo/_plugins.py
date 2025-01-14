@@ -10,7 +10,8 @@ from ropt.config.plan import PlanStepConfig, ResultHandlerConfig
 from ropt.plan import Plan
 from ropt.plugins.plan.base import PlanPlugin, PlanStep, ResultHandler
 
-from ._functions import _everest2ropt, _results2dict
+from ._functions import _results2dict
+from ._optimizer import K2OptimizerStep
 from ._results_table import K2ResultsTableHandler
 from ._workflow_job import K2WorkflowJobStep
 
@@ -19,6 +20,7 @@ if TYPE_CHECKING:
     from everest.config import EverestConfig
 
 _STEP_OBJECTS: Final[dict[str, Type[PlanStep]]] = {
+    "optimizer": K2OptimizerStep,
     "workflow_job": K2WorkflowJobStep,
 }
 
@@ -82,6 +84,5 @@ class K2PlanPlugin(PlanPlugin):
     @property
     def functions(self) -> dict[str, Any]:
         return {
-            "everest2ropt": _everest2ropt,
             "results2dict": _results2dict,
         }

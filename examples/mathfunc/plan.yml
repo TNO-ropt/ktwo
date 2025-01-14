@@ -5,7 +5,7 @@ plan:
     optimal_value: null
   steps:
     - optimizer:
-        config: everest2ropt($everest_config)
+        config: $everest_config
         tags: report
     - print:
         message: |
@@ -16,3 +16,5 @@ plan:
         tags: report
         var: optimal_value
         constraint_tolerance: 1e-6
+    - results_table:
+        tags: report

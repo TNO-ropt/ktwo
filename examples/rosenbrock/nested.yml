@@ -24,8 +24,6 @@ plan:
     - everest_config
   variables:
     nested_config: null
-    outer_config: null
-    inner_config: null
   steps:
     - set:
         nested_config: $everest_config
@@ -41,15 +39,12 @@ plan:
         - nested_config["optimization"]["algorithm"]: dakota/default
         - nested_config["controls"][0]["variables"][0]["enabled"]: False
         - nested_config["controls"][0]["variables"][1]["enabled"]: False
-    - set:
-        outer_config: everest2ropt($everest_config)
-        inner_config: everest2ropt($nested_config)
     - optimizer:
-        config: $outer_config
+        config: $everest_config
         tags: outer
         nested_optimization:
           plan: *nested_plan
-          extra_inputs: $inner_config
+          extra_inputs: $everest_config
   handlers:
     - metadata:
         tags: outer

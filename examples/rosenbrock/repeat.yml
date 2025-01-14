@@ -14,13 +14,13 @@ plan:
         var: iter
         steps:
           - optimizer:
-              config: everest2ropt($everest_config)
+              config: $everest_config
               tags: report
               initial_values: $optimal_value
           - save:
               data:
                 iter: $iter
-                objectives: results2dict($optimal_value, "evaluations.objectives")
+                objectives: results2dict($everest_config, $optimal_value, "evaluations.objectives")
               path: <<$config_path>>/everest_output/objectives-<<$iter>>.json
     - print:
         message: |

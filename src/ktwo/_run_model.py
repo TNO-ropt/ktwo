@@ -59,8 +59,10 @@ class K2RunModel(EverestRunModel):
             logging_level=everest_config.logging_level,
         )
 
+        self._ert_config = everest_to_ert_config(everest_config)
+
         super().__init__(
-            config=everest_to_ert_config(everest_config),
+            config=self._ert_config,
             everest_config=everest_config,
             simulation_callback=lambda _: None,
             optimization_callback=lambda: None,
@@ -78,7 +80,7 @@ class K2RunModel(EverestRunModel):
         """
         self._eval_server_cfg = EvaluatorServerConfig(
             custom_port_range=range(49152, 51819)
-            if self.ert_config.queue_config.queue_system == QueueSystem.LOCAL
+            if self._ert_config.queue_config.queue_system == QueueSystem.LOCAL
             else None
         )
         self._experiment = next(
@@ -92,8 +94,8 @@ class K2RunModel(EverestRunModel):
         if self._experiment is None:
             self._experiment = self._storage.create_experiment(
                 name=self._everest_config.config_file,
-                parameters=self.ert_config.ensemble_config.parameter_configuration,
-                responses=self.ert_config.ensemble_config.response_configuration,
+                parameters=self._ert_config.ensemble_config.parameter_configuration,
+                responses=self._ert_config.ensemble_config.response_configuration,
             )
         plugin_manager = PluginManager()
         plugin_manager.add_plugin(
@@ -210,7 +212,7 @@ class K2RunModel(EverestRunModel):
         return evaluator_result
 
     def _store_restart_data(self, event: Event) -> None:
-        if event.exit_code is None and self._restart_data:
+        if "exit_code" not in event.data and self._restart_data:
             path = Path(self._everest_config.output_dir) / "restart"
             batch = self._restart_data["batch_id"]
             path.mkdir(exist_ok=True)

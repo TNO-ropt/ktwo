@@ -13,6 +13,8 @@ from ropt.plugins.plan.base import ResultHandler
 from ropt.report import ResultsTable
 from ropt.results import convert_to_maximize
 
+from ._utils import _get_names
+
 _TABLE_TYPE_MAP: Final[dict[str, Literal["functions", "gradients"]]] = {
     "results": "functions",
     "gradients": "gradients",
@@ -124,9 +126,15 @@ class K2ResultsTableHandler(ResultHandler):
                 EventType.FINISHED_EVALUATION,
                 EventType.FINISHED_EVALUATOR_STEP,
             }
-            and event.results is not None
+            and "results" in event.data
             and (event.tags & self._with.tags)
         ):
+            names = _get_names(event.data.get("everest_config"))
             for table in self._tables:
-                table.add_results((convert_to_maximize(item) for item in event.results))
+                added = False
+                for item in event.data["results"]:
+                    if table.add_results(convert_to_maximize(item), names):
+                        added = True
+                if added:
+                    table.save()
         return event

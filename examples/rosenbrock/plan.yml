@@ -1,10 +1,10 @@
 anchors:
   steps: &steps
     - set:
-        everest_config['optimization']['max_function_evaluations']: 20
+        everest_config['optimization']['max_function_evaluations']: 3
         everest_config['controls'][0]['variables'][3]['max']: 100
     - optimizer:
-        config: everest2ropt($everest_config)
+        config: $everest_config
         tags: report
     - workflow_job:
       - report 'Best results for:' $config_path
@@ -23,3 +23,5 @@ plan:
     - tracker:
         tags: report
         var: optimal_value
+    - results_table:
+        tags: report
