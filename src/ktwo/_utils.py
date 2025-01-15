@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Sequence
 
 from ropt.enums import ResultAxis
 
@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 def _get_names(
     everest_config: EverestConfig | None,
-) -> dict[ResultAxis, tuple[str, ...] | None] | None:
+) -> dict[str, Sequence[str] | None] | None:
     if everest_config is None:
         return None
 
@@ -29,3 +29,22 @@ def _get_names(
         ResultAxis.NONLINEAR_CONSTRAINT: everest_config.constraint_names,
         ResultAxis.REALIZATION: everest_config.model.realizations,
     }
+
+
+# ruff: noqa: ERA001,TD002,TD003,FIX002
+
+# TODO: Change to this when formatted_control_names is available:
+#
+# def _get_names(
+#     everest_config: EverestConfig | None,
+# ) -> dict[str, Sequence[str] | None] | None:
+#     return (
+#         None
+#         if everest_config is None
+#         else {
+#             ResultAxis.VARIABLE: everest_config.formatted_control_names,
+#             ResultAxis.OBJECTIVE: everest_config.objective_names,
+#             ResultAxis.NONLINEAR_CONSTRAINT: everest_config.constraint_names,
+#             ResultAxis.REALIZATION: everest_config.model.realizations,
+#         }
+#     )

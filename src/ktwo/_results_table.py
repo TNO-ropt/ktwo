@@ -24,7 +24,6 @@ _TABLE_TYPE_MAP: Final[dict[str, Literal["functions", "gradients"]]] = {
 
 _COLUMNS: Final[dict[str, dict[str, str]]] = {
     "results": {
-        "result_id": "ID",
         "batch_id": "Batch",
         "functions.weighted_objective": "Total-Objective",
         "linear_constraints.violations": "IC-violation",
@@ -41,14 +40,12 @@ _COLUMNS: Final[dict[str, dict[str, str]]] = {
         "nonlinear_constraints.scaled_violations": "Scaled-OC-violation",
     },
     "gradients": {
-        "result_id": "ID",
         "batch_id": "Batch",
         "gradients.weighted_objective": "Total-Gradient",
         "gradients.objectives": "Grad-objective",
         "gradients.constraints": "Grad-constraint",
     },
     "simulations": {
-        "result_id": "ID",
         "batch_id": "Batch",
         "realization": "Realization",
         "evaluations.evaluation_ids": "Simulation",
@@ -60,7 +57,6 @@ _COLUMNS: Final[dict[str, dict[str, str]]] = {
         "evaluations.scaled_constraints": "Scaled-Constraint",
     },
     "perturbations": {
-        "result_id": "ID",
         "batch_id": "Batch",
         "realization": "Realization",
         "evaluations.perturbed_evaluation_ids": "Simulation",

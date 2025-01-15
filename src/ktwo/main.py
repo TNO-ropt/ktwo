@@ -64,7 +64,6 @@ def _report(event: Event) -> None:
             maximization_result = convert_to_maximize(item)
             assert maximization_result is not None
             assert isinstance(maximization_result, FunctionResults)
-            print(f"result: {maximization_result.result_id}")
             print(f"  variables: {maximization_result.evaluations.variables}")
             assert maximization_result.functions is not None
             print(f"  objective: {maximization_result.functions.weighted_objective}\n")
